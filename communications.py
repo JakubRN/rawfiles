@@ -6,12 +6,12 @@ import time, sys, argparse, math
 
 
 home_position_set = False
-
+MAV_MODE_AUTO   = 4
 def connectPixhawk():
     connection_string       = '127.0.0.1:14540'
     serial_connection 		= '/dev/ttyTHS1'
     baud_rate 				= 921600
-    MAV_MODE_AUTO   = 4
+
     # https://github.com/PX4/Firmware/blob/master/Tools/mavlink_px4.py
     
     # Parse connection argument
@@ -35,7 +35,7 @@ def connectPixhawk():
         return vehicle
     
 def init(vehicle):
-    udp_conn = dronekit.mavlink.MAVConnection('udpin:127.0.0.1:15667', source_system=1)
+    udp_conn = dronekit.mavlink.MAVConnection('udpin:0.0.0.0:15667', source_system=1)
     vehicle._handler.pipe(udp_conn)
     udp_conn.master.mav.srcComponent = 1
     udp_conn.start
@@ -61,11 +61,16 @@ def init(vehicle):
 
 
 
-def PX4setMode(mavMode):
+def PX4setMode(vehicle, mavMode):
     vehicle._master.mav.command_long_send(vehicle._master.target_system, vehicle._master.target_component,
                                                mavutil.mavlink.MAV_CMD_DO_SET_MODE, 0,
                                                mavMode,
                                                0, 0, 0, 0, 0, 0)
                                                
+def PX4RTL(vehicle):
+    vehicle._master.mav.command_long_send(vehicle._master.target_system, vehicle._master.target_component,
+                                               mavutil.mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH, 0,
+                                               0,
+                                               0, 0, 0, 0, 0, 0)
 
 

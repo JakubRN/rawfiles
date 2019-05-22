@@ -35,13 +35,6 @@ def get_location_offset_meters(original_location, dNorth, dEast, alt):
 # Listeners
 ################################################################################################
 
-home_position_set = False
-
-#Create a message listener for home position fix
-@vehicle.on_message('HOME_POSITION')
-def listener(self, name, home_position):
-    global home_position_set
-    home_position_set = True
 
 
 
