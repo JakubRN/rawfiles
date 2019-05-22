@@ -7,7 +7,7 @@ from communications import PX4RTL
 
 def nav_command(wp, acceptance_radius = 0, radius_to_pass_by=0, heading=float('nan')):
      return Command(0,0,0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, 0, 1, 0, acceptance_radius, radius_to_pass_by, heading, wp.lat, wp.lon, wp.alt)
-def land_command(wp, heading=float('nan'), minimum_altitude_if_aborted=0, precision_land_mode=2):
+def land_command(wp, heading=float('nan'), minimum_altitude_if_aborted=0, precision_land_mode=0):
     return Command(0,0,0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_LAND, 0, 1, minimum_altitude_if_aborted, precision_land_mode, 0, heading, wp.lat, wp.lon, wp.alt)
 
 def takeoff_command(wp, heading=float('nan'), minimum_pitch=0):

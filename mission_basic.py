@@ -10,81 +10,11 @@ Full documentation is provided at http://python.dronekit.io/examples/mission_bas
 from __future__ import print_function
 
 from dronekit import connect, VehicleMode, LocationGlobalRelative, LocationGlobal, Command
-import time
-import math
+import math, threading, time, readtr1w
 from pymavlink import mavutil
 from communications import *
 from helperFunctions import *
-
-
-
-
-def adds_square_mission(aLocation, aSize, altitude):
-    """
-    Adds a takeoff command and four waypoint commands to the current mission. 
-    The waypoints are positioned to form a square of side length 2*aSize around the specified LocationGlobal (aLocation).
-
-    The function assumes vehicle.commands matches the vehicle mission state 
-    (you must have called download at least once in the session and after clearing the mission)
-    """	
-
-    cmds = vehicle.commands
-
-    cmds.clear() 
-    
-    # Add new commands. The meaning/order of the parameters is documented in the Command class. 
-     
-    #Add MAV_CMD_NAV_TAKEOFF command. This is ignored if the vehicle is already in the air.
-    cmds.add(Command( 0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0, 0, 0, 0, 0, 0, aLocation.lat, aLocation.lon, altitude))
-
-    #Define the four MAV_CMD_NAV_WAYPOINT locations and add the commands
-    point1 = get_location_offset_meters(aLocation, aSize, -aSize, 0)
-    point2 = get_location_offset_meters(aLocation, aSize, aSize, 0)
-    point3 = get_location_offset_meters(aLocation, -aSize, aSize, 0)
-    point4 = get_location_offset_meters(aLocation, -aSize, -aSize, 0)
-    cmds.add(Command( 0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, 0, 0, 0, 0, 0, 0, point1.lat, point1.lon, altitude))
-    cmds.add(Command( 0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, 0, 0, 0, 0, 0, 0, point2.lat, point2.lon, altitude))
-    cmds.add(Command( 0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, 0, 0, 0, 0, 0, 0, point3.lat, point3.lon, altitude))
-    cmds.add(Command( 0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, 0, 0, 0, 0, 0, 0, point4.lat, point4.lon, altitude))
-    cmds.add(Command( 0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, 0, 0, 0, 0, 0, 0, point1.lat, point1.lon, altitude))
-    #add dummy waypoint "5" at point 4 (lets us know when have reached destination)
-    cmds.add(Command( 0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, 0, 0, 0, 0, 0, 0, point1.lat, point1.lon, altitude))    
-
-    print(" Upload new commands to vehicle")
-    cmds.upload()
-    # From Copter 3.3 you will be able to take off using a mission item. Plane must take off using a mission item (currently).
-
-    vehicle.armed = True
-
-    print("Starting mission")
-    # Reset mission set to first (0) waypoint
-    vehicle.commands.next=0
-
-    # Set mode to AUTO to start mission
-    # vehicle.mode = VehicleMode("AUTO")
-
-
-    # Monitor mission. 
-    # Demonstrates getting and setting the command number 
-    # Uses distance_to_current_waypoint(), a convenience function for finding the 
-    #   distance to the next waypoint.
-    PX4setMode(vehicle, MAV_MODE_AUTO)
-    while True:
-        nextwaypoint=vehicle.commands.next
-        print('Distance to waypoint (%s): %s' % (nextwaypoint, distance_to_current_waypoint(vehicle)))
-    
-        # if nextwaypoint==4: #Skip to next waypoint
-        #     print('Skipping to Waypoint 5 when reach waypoint 3')
-        #     vehicle.commands.next = 5
-        if nextwaypoint==7: #Dummy waypoint - as soon as we reach waypoint 4 this is true and we exit.
-            print("Exit 'standard' mission when start heading to final waypoint (5)")
-            break;
-        time.sleep(1)
-
-    print('Return to launch')
-    vehicle.mode = VehicleMode("RTL")
-
-
+import numpy as np
 
 def execMission():
     #arm_and_takeoff(altitude)
@@ -192,18 +122,107 @@ def simple_goto(aTargetAltitude, radius):
     time.sleep(15)
     vehicle.mode = VehicleMode("RTL")
 
-vehicle = connectPixhawk()
+def unit_vector(vector):
+    """ Returns the unit vector of the vector.  """
+    return vector / np.linalg.norm(vector)
 
+def angle_between(v1, v2):
+    """ Returns the angle in radians between vectors 'v1' and 'v2'::
+
+            >>> angle_between((1, 0, 0), (0, 1, 0))
+            1.5707963267948966
+            >>> angle_between((1, 0, 0), (1, 0, 0))
+            0.0
+            >>> angle_between((1, 0, 0), (-1, 0, 0))
+            3.141592653589793
+    """
+    v1_u = unit_vector(v1)
+    v2_u = unit_vector(v2)
+    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+
+def havePriority(myPos, enemyPos, myDir):
+    x= enemyPos.lat - myPos.lat
+    y= enemyPos.lon - myPos.lon
+    length = math.sqrt((x*x) + (y*y))
+    enemyPosVector = [x, y]
+    myDirVector = [math.cos(math.radians(myDir)), math.sin(math.radians(myDir))]
+    angle = math.degrees(angle_between(myDirVector, enemyPosVector))
+    #print("My heading:", myDir, "angle between us: ", angle)
+    crossProduct = x*myDirVector[1] - y * myDirVector[0]
+    # if(crossProduct < 0):
+    #     print("on the right")
+    # else:
+    #     print("on the left")
+    if(angle < 45): return False
+    if(crossProduct < 0 and angle < 135):
+        #print("airplane to the right and within no-go zone")
+        return False
+    return True
+    
+def calculateClosestDistance(ref, my_pos, enemy_pos, my_heading, enemy_heading, my_vel, enemy_vel):
+    earth_radius=6378137.0 #Radius of "spherical" earth
+    #Coordinate offsets in radians
+    multiplicatorX = earth_radius / (180/math.pi)
+    multiplicatorY = (earth_radius*math.cos(math.pi*ref.lat/180)) / (180/math.pi)
+    x0t = (my_pos.lat - ref.lat)*multiplicatorX
+    y0t = (my_pos.lon - ref.lon)*multiplicatorY
+    x0j = (enemy_pos.lat - ref.lat) * multiplicatorX
+    y0j = (enemy_pos.lon - ref.lon) * multiplicatorY
+    print("my coords: ", x0t, ", ", y0t, ", enemy's coords:", x0j, ", ", y0j)
+    a = (my_vel * math.cos(math.radians(my_heading)) - enemy_vel * math.cos(math.radians(enemy_heading)))
+    b = (my_vel * math.sin(math.radians(my_heading)) - enemy_vel * math.sin(math.radians(enemy_heading)))
+    t = (-(x0t - x0j)*a - (y0t - y0j)*b) / (a*a + b*b)
+    print("minimum for time:", t)
+    d = math.sqrt(math.pow(x0j - x0t - t * a, 2) + math.pow(y0j - y0t - t*b, 2))
+    return d
+    
+
+
+
+def checkAirplanesDistance(run_event):
+    MAX_RADIUS = 20
+    while run_event.is_set():
+        vehicle_pos = vehicle.location.global_relative_frame
+        readtr1w.checkingAirplanes = True
+        for ICAO, airplaneData in readtr1w.airplanes.items():
+            loc = LocationGlobalRelative(airplaneData["latitude"], airplaneData["longitude"])
+            dist = get_distance_metres(vehicle_pos, loc)
+            #print("Distance: ", dist)
+            if(not havePriority(vehicle_pos, loc, vehicle.heading) and dist < MAX_RADIUS):
+                velValue = np.linalg.norm(vehicle.velocity)
+                #print("My velocity:", velValue)
+                dist = calculateClosestDistance(vehicle.home_location, vehicle_pos, loc, vehicle.heading,
+                             airplaneData["dir"], velValue, airplaneData["h_velocity"])
+                print("Closest calculated distance: ", dist)
+
+        readtr1w.checkingAirplanes = False
+        time.sleep(0.2)
+
+vehicle = connectPixhawk()
 vehicle.groundspeed = 20
-altitude = 8
-radius = 20
-PX4mission(radius, altitude)
+altitude = 4
+radius = 10
+
+readtr1w.addFakeAirPlane(vehicle.location.global_relative_frame, radius + 5)
+
+run_event = threading.Event()
+run_event.set()
+tr1wDataThread = threading.Thread(target = checkAirplanesDistance, args = (run_event,))
+tr1wDataThread.start()
+try:
+    PX4mission(radius, altitude)
+except KeyboardInterrupt:
+    run_event.clear()
+    tr1wDataThread.join()
+    print("Thread closed")
 #simple_goto(altitude, radius)
 #RTL wznosi sie na 15 m w symulatorze
 #adds_square_mission(vehicle.location.global_relative_frame,radius, altitude)
 #takeoff_land(altitude)
 #testAutoMode()
-
+run_event.clear()
+tr1wDataThread.join()
+print("Thread closed")
 # Close vehicle object before exiting script
 vehicle.close()
 # time.sleep(1)
