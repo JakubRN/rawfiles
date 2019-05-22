@@ -4,47 +4,7 @@ from dronekit import connect
 from dronekit import Command, LocationGlobal
 from pymavlink import mavutil
 import time, sys, argparse, math
-
-
-################################################################################################
-# Settings
-################################################################################################
-
-connection_string       = '127.0.0.1:14540'
-serial_connection 		= '/dev/ttyTHS1'
-baud_rate 				= 921600
-MAV_MODE_AUTO   = 4
-# https://github.com/PX4/Firmware/blob/master/Tools/mavlink_px4.py
-
-
-# Parse connection argument
-parser = argparse.ArgumentParser()
-parser.add_argument("-c", "--connect", help="connection string")
-parser.add_argument("-b", "--baud", help="baud rate")
-args = parser.parse_args()
-
-
-
-################################################################################################
-# Init
-################################################################################################
-
-# Connect to the Vehicle
-print( "Connecting")
-vehicle = connect('/dev/ttyTHS1', wait_ready=True, baud=921600)
-print( "connected")
-udp_conn = dronekit.mavlink.MAVConnection('udpin:127.0.0.1:15667', source_system=1)
-vehicle._handler.pipe(udp_conn)
-udp_conn.master.mav.srcComponent = 1
-udp_conn.start
-print('udp launched')
-
-def PX4setMode(mavMode):
-    vehicle._master.mav.command_long_send(vehicle._master.target_system, vehicle._master.target_component,
-                                               mavutil.mavlink.MAV_CMD_DO_SET_MODE, 0,
-                                               mavMode,
-                                               0, 0, 0, 0, 0, 0)
-
+from communications import connectPixhawk, PX4setMode
 
 
 def get_location_offset_meters(original_location, dNorth, dEast, alt):
@@ -89,22 +49,8 @@ def listener(self, name, home_position):
 # Start mission example
 ################################################################################################
 
-# wait for a home position lock
-while not home_position_set:
-    print( "Waiting for home position...")
-    time.sleep(1)
 
-# Display basic vehicle state
-print( " Type: %s" % vehicle._vehicle_type)
-print( " Armed: %s" % vehicle.armed)
-print( " System status: %s" % vehicle.system_status.state)
-print( " GPS: %s" % vehicle.gps_0)
-print( " Alt: %s" % vehicle.location.global_relative_frame.alt)
-print("Battery: ", vehicle.battery.level, ", voltage: ", vehicle.battery.voltage)
-
-# Change to AUTO mode
-#PX4setMode(MAV_MODE_AUTO)
-#time.sleep(1)
+vehicle = connectPixhawk()
 
 # Load commands
 cmds = vehicle.commands
