@@ -13,30 +13,7 @@ from dronekit import connect, VehicleMode, LocationGlobalRelative, LocationGloba
 import time
 import math
 from pymavlink import mavutil
-
-
-#Set up option parsing to get connection string
-import argparse  
-parser = argparse.ArgumentParser(description='Demonstrates basic mission operations.')
-parser.add_argument('--connect', 
-                   help="vehicle connection target string. If not specified, SITL automatically started and used.")
-args = parser.parse_args()
-
-connection_string = args.connect
-sitl = None
-
-
-#Start SITL if no connection string specified
-if connection_string:
-    import dronekit_sitl
-    sitl = dronekit_sitl.start_default()
-    connection_string = sitl.connection_string()
-
-
-# Connect to the Vehicle
-#print('Connecting to vehicle on: %s' % connection_string)
-vehicle = connect("/dev/ttyTHS1",baud=921600, wait_ready=True)
-
+from communications import connectPixhawk, PX4setMode
 
 def get_location_offset_meters(original_location, dNorth, dEast, alt):
     """
@@ -309,6 +286,9 @@ def testAutoMode():
     time.sleep(1)
 
 #set groundspeed to 1m/s
+
+vehicle = connectPixhawk()
+
 vehicle.groundspeed = 1
 altitude = 2
 radius = 5
