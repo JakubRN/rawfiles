@@ -293,7 +293,7 @@ except KeyboardInterrupt:
     print("Thread closed")
 except:
     run_event.clear()
-        tr1wGatherThread.join()
+    tr1wGatherThread.join()
     tr1wDataThread.join()
     print("Thread closed")
     raise
