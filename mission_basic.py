@@ -274,20 +274,26 @@ vehicle.groundspeed = 5
 altitude = 4
 radius = 20
 
-readtr1w.addFakeAirPlane(vehicle.location.global_relative_frame, radius + 10)
+# readtr1w.addFakeAirPlane(vehicle.location.global_relative_frame, radius + 10)
 
-run_event = threading.Event()
-run_event.set()
-tr1wDataThread = threading.Thread(target = checkAirplanesDistance, args = (run_event,))
-tr1wDataThread.start()
+
+
 try:
-    PX4mission(radius, altitude)
+    run_event = threading.Event()
+    run_event.set()
+    tr1wGatherThread = threading.Thread(target = readtr1w.readTransponder, args = (run_event,'/dev/ttyUSB0'))
+    tr1wGatherThread.start()
+    tr1wDataThread = threading.Thread(target = checkAirplanesDistance, args = (run_event,))
+    tr1wDataThread.start()
+    # PX4mission(radius, altitude)
 except KeyboardInterrupt:
     run_event.clear()
+    tr1wGatherThread.join()
     tr1wDataThread.join()
     print("Thread closed")
 except:
     run_event.clear()
+        tr1wGatherThread.join()
     tr1wDataThread.join()
     print("Thread closed")
     raise
@@ -297,6 +303,7 @@ except:
 #takeoff_land(altitude)
 #testAutoMode()
 run_event.clear()
+tr1wGatherThread.join()
 tr1wDataThread.join()
 print("Thread closed")
 # Close vehicle object before exiting script
