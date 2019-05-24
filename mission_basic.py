@@ -19,18 +19,22 @@ import numpy as np
         
 def modifyMission():
     print("Hello mission modifier")
+    vehicle.home_location = LocationGlobal(vehicle.location.global_frame.lat, vehicle.location.global_frame.lon,vehicle.home_location.lat)
     cmds = vehicle.commands
+    currentCollisionWaypoint = vehicle.commands.next - 1
     missionlist=[]
-    for cmd in cmds:
-        missionlist.append(cmd)
+    missionlist.append(nav_command(LocationGlobalRelative(collisionHandleCoordinates[0], collisionHandleCoordinates[1], altitude)))
+    for index, cmd in enumerate(cmds):
+        if(index > currentCollisionWaypoint):
+            missionlist.append(cmd)
+    print("Old mission size: ", len(cmds))
     cmds.clear()
-    missionlist.insert(currentCollisionWaypoint - 1, nav_command(LocationGlobalRelative(collisionHandleCoordinates[0], collisionHandleCoordinates[1], altitude)))
+    vehicle.commands.next = 0
     # print(missionlist)
-    print("Old mission size: ", len(missionlist) - 1)
     print("New mission size: ",len(missionlist))
-    print("inserted index: ",currentCollisionWaypoint - 1)
+    print("not inserted commands: ",currentCollisionWaypoint)
     print("next command",vehicle.commands.next )
-    time.sleep(0.1)
+    # time.sleep(0.2)
     #Write the modified mission and flush to the vehicle
     for cmd in missionlist:
         cmds.add(cmd)
@@ -39,14 +43,21 @@ def modifyMission():
 
 def follow_waypoints(vehicle):
     global collisionPending
+    global collisionHandling
     nextwaypoint = vehicle.commands.next
     while nextwaypoint < len(vehicle.commands):
         if(collisionPending):
             modifyMission()
+            nextwaypoint = vehicle.commands.next
+            print(nextwaypoint)
             collisionPending = False
-        if vehicle.commands.next > nextwaypoint:
-            display_seq = vehicle.commands.next+1
-            print("Moving to waypoint %s" % display_seq)
+        elif vehicle.commands.next > nextwaypoint:
+            if(collisionHandling is not None) :
+                readtr1w.checkingAirplanes = True
+                del readtr1w.airplanes[collisionHandling]
+                readtr1w.checkingAirplanes = False
+                collisionHandling = None
+            print("Moving to waypoint %s" % vehicle.commands.next)
             nextwaypoint = vehicle.commands.next
         # if(nextwaypoint == 3):
         #     vehicle.commands.clear()
@@ -143,7 +154,6 @@ def angle_between(v1, v2):
 def havePriority(myPos, enemyPos, myDir):
     x = enemyPos.lat - myPos.lat
     y = enemyPos.lon - myPos.lon
-    length = math.sqrt((x*x) + (y*y))
     enemyPosVector = [x, y]
     myDirVector = [math.cos(math.radians(myDir)), math.sin(math.radians(myDir))]
     angle = math.degrees(angle_between(myDirVector, enemyPosVector))
@@ -201,13 +211,15 @@ def avoidCollision(ref, my_pos, enemy_pos, my_heading, enemy_heading, my_vel, en
             finalAngle = my_heading + angleBetweenUs + alpha
         else:
             finalAngle = my_heading - angleBetweenUs + alpha
-        print("angle between us ", angleBetweenUs)
+        #print("angle between us ", angleBetweenUs)
         if(finalAngle > 360): finalAngle = finalAngle - 360
-        print("final angle ", finalAngle)
-        collisionAvoidX = math.cos(finalAngle) * AC
-        collisionAvoidY = math.sin(finalAngle) * AC
+        print("displacement length: ", AC)
+        collisionAvoidX =(math.cos(finalAngle) * AC) + x0t
+        collisionAvoidY = (math.sin(finalAngle) * AC) + y0t
         finalCoordinateLat = collisionAvoidX / multiplicatorX + ref.lat
         finalCoordinateLon = collisionAvoidY / multiplicatorY + ref.lon
+        print("collisionAvoidCoordinates: ", collisionAvoidX - x0t, ", ", collisionAvoidY - y0t)
+        print("collisionAvoidCoordinates relative to home: ", collisionAvoidX, ", ", collisionAvoidY )
         #print("my coordinates: ", my_pos.lat, ", ", my_pos.lon)
         #print("collision avoidance coordinates: ", finalCoordinateLat, ", ", finalCoordinateLon)
         #mdify mission
@@ -216,7 +228,6 @@ def avoidCollision(ref, my_pos, enemy_pos, my_heading, enemy_heading, my_vel, en
 
 def scheduleModification(latlon, ICAO):
     global collisionHandling
-    global currentCollisionWaypoint
     global collisionHandleCoordinates
     global collisionPending
     if(collisionHandling is None):
@@ -224,7 +235,7 @@ def scheduleModification(latlon, ICAO):
         collisionHandleCoordinates = latlon
         collisionPending = True
         collisionHandling = ICAO
-        currentCollisionWaypoint = vehicle.commands.next 
+
 
 def checkAirplanesDistance(run_event):
     MAX_RADIUS = 20
@@ -233,10 +244,7 @@ def checkAirplanesDistance(run_event):
     while run_event.is_set():
         vehicle_pos = vehicle.location.global_relative_frame
         time.sleep(0.5)
-        if(currentCollisionWaypoint is not -1 ):
-            if(currentCollisionWaypoint != vehicle.commands.next) :
-                collisionHandling = None
-                currentCollisionWaypoint = -1
+        if(collisionHandling is not None ):
             continue
         readtr1w.checkingAirplanes = True
         for ICAO, airplaneData in readtr1w.airplanes.items():
@@ -258,14 +266,13 @@ def checkAirplanesDistance(run_event):
 
 collisionPending = False
 collisionHandling = None
-currentCollisionWaypoint = -1
 collisionHandleCoordinates = None
 
 
 vehicle = connectPixhawk()
-vehicle.groundspeed = 20
+vehicle.groundspeed = 5
 altitude = 4
-radius = 15
+radius = 20
 
 readtr1w.addFakeAirPlane(vehicle.location.global_relative_frame, radius + 10)
 
@@ -279,6 +286,11 @@ except KeyboardInterrupt:
     run_event.clear()
     tr1wDataThread.join()
     print("Thread closed")
+except:
+    run_event.clear()
+    tr1wDataThread.join()
+    print("Thread closed")
+    raise
 #simple_goto(altitude, radius)
 #RTL wznosi sie na 15 m w symulatorze
 #adds_square_mission(vehicle.location.global_relative_frame,radius, altitude)
