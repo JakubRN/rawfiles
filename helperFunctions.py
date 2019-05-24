@@ -9,7 +9,8 @@ def nav_command(wp, acceptance_radius = 0, radius_to_pass_by=0, heading=float('n
      return Command(0,0,0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, 0, 1, 0, acceptance_radius, radius_to_pass_by, heading, wp.lat, wp.lon, wp.alt)
 def land_command(wp, heading=float('nan'), minimum_altitude_if_aborted=0, precision_land_mode=0):
     return Command(0,0,0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_LAND, 0, 1, minimum_altitude_if_aborted, precision_land_mode, 0, heading, wp.lat, wp.lon, wp.alt)
-
+def loiter_command(wp, time=5, heading=float('nan'), radius=0):
+    return Command(0,0,0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_LOITER_TIME, 0, 1, time, 0, radius, heading, wp.lat, wp.lon, wp.alt)
 def takeoff_command(wp, heading=float('nan'), minimum_pitch=0):
     return Command(0,0,0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0, 1, minimum_pitch, 0, 0, heading, wp.lat, wp.lon, wp.alt)
 
@@ -90,17 +91,3 @@ def arm_and_takeoff(vehicle, aTargetAltitude):
             break
         time.sleep(1)
 
-def follow_waypoints(vehicle):
-    nextwaypoint = vehicle.commands.next
-    while nextwaypoint < len(vehicle.commands):
-        if vehicle.commands.next > nextwaypoint:
-            display_seq = vehicle.commands.next+1
-            print("Moving to waypoint %s" % display_seq)
-            nextwaypoint = vehicle.commands.next
-        # if(nextwaypoint == 3):
-        #     vehicle.commands.clear()
-        #     PX4RTL(vehicle)
-        #     break
-        time.sleep(1)
-    while vehicle.commands.next > 0: #last command
-        time.sleep(1)

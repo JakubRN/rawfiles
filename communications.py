@@ -7,6 +7,7 @@ import time, sys, argparse, math
 
 home_position_set = False
 MAV_MODE_AUTO   = 4
+MAV_MODE_STABILIZED = 16
 def connectPixhawk():
     connection_string       = '127.0.0.1:14540'
     serial_connection 		= '/dev/ttyTHS1'

@@ -16,6 +16,46 @@ from communications import *
 from helperFunctions import *
 import numpy as np
 
+        
+def modifyMission():
+    print("Hello mission modifier")
+    cmds = vehicle.commands
+    missionlist=[]
+    for cmd in cmds:
+        missionlist.append(cmd)
+    cmds.clear()
+    missionlist.insert(currentCollisionWaypoint - 1, nav_command(LocationGlobalRelative(collisionHandleCoordinates[0], collisionHandleCoordinates[1], altitude)))
+    # print(missionlist)
+    print("Old mission size: ", len(missionlist) - 1)
+    print("New mission size: ",len(missionlist))
+    print("inserted index: ",currentCollisionWaypoint - 1)
+    print("next command",vehicle.commands.next )
+    time.sleep(0.1)
+    #Write the modified mission and flush to the vehicle
+    for cmd in missionlist:
+        cmds.add(cmd)
+    cmds.upload()
+    time.sleep(1)
+
+def follow_waypoints(vehicle):
+    global collisionPending
+    nextwaypoint = vehicle.commands.next
+    while nextwaypoint < len(vehicle.commands):
+        if(collisionPending):
+            modifyMission()
+            collisionPending = False
+        if vehicle.commands.next > nextwaypoint:
+            display_seq = vehicle.commands.next+1
+            print("Moving to waypoint %s" % display_seq)
+            nextwaypoint = vehicle.commands.next
+        # if(nextwaypoint == 3):
+        #     vehicle.commands.clear()
+        #     PX4RTL(vehicle)
+        #     break
+        time.sleep(1)
+    while vehicle.commands.next > 0: #last command
+        time.sleep(1)
+
 def execMission():
     #arm_and_takeoff(altitude)
     vehicle.armed=True
@@ -26,7 +66,6 @@ def execMission():
     time.sleep(1)
 
 def PX4mission(radius, altitude):
-
     PX4setMode(vehicle, MAV_MODE_AUTO)
     time.sleep(1)
     cmds = vehicle.commands
@@ -42,22 +81,22 @@ def PX4mission(radius, altitude):
     wp = get_location_offset_meters(wp, radius, 0, 0);
     cmds.add(nav_command(wp, acceptance_radius, radius_to_pass_by))
 
-    # move east
-    wp = get_location_offset_meters(wp, 0, radius, 0);
+    # move west
+    wp = get_location_offset_meters(wp, 0, -radius, 0);
     cmds.add(nav_command(wp, acceptance_radius, radius_to_pass_by))
 
     # move south
     wp = get_location_offset_meters(wp, -2*radius, 0, 0);
     cmds.add(nav_command(wp, acceptance_radius, radius_to_pass_by))
 
-    # move west
-    wp = get_location_offset_meters(wp, 0, -2*radius, 0);
+    # move east
+    wp = get_location_offset_meters(wp, 0, 2*radius, 0);
     cmds.add(nav_command(wp, acceptance_radius, radius_to_pass_by))
 
     wp = get_location_offset_meters(wp, 2*radius, 0, 0);
     cmds.add(nav_command(wp, acceptance_radius, radius_to_pass_by))
 
-    wp = get_location_offset_meters(wp, 0, radius, 0);
+    wp = get_location_offset_meters(wp, 0, -radius, 0);
     cmds.add(nav_command(wp, acceptance_radius, radius_to_pass_by))
     # land
     wp = get_location_offset_meters(home, 0, 0, altitude);
@@ -75,52 +114,13 @@ def takeoff_land(altitude):
     cmds.clear() 
     home = vehicle.location.global_relative_frame
     wp = get_location_offset_meters(home, 0, 0, altitude)
-    cmd = Command(0,0,0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0, 1, 0, 0, 0, 0, wp.lat, wp.lon, wp.alt)
-    cmds.add(cmd)
-    cmd = Command(0,0,0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_LOITER_TIME, 0, 0, 5, 0, 3, 0, wp.lat, wp.lon, wp.alt)
-    cmds.add(cmd)
-    cmd = Command(0,0,0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_LAND, 0, 2, 0, 0, 0, 0, wp.lat, wp.lon, 0)
-    cmds.add(cmd)
+    cmds.add(takeoff_command(wp)) 
+    cmds.add(loiter_command(wp,5))
+    cmds.add(land_command(wp))
     cmds.upload()
     time.sleep(1)
     execMission()
 
-
-def testAutoMode():
-    cmds = vehicle.commands
-    cmds.clear() 
-    vehicle.armed = True
-    vehicle.commands.next=0
-    vehicle.mode = VehicleMode("AUTO")
-    time.sleep(5)
-    vehicle.mode = VehicleMode("GUIDED")
-    vehicle.armed = False
-    time.sleep(1)
-
-
-def simple_goto(aTargetAltitude, radius):
-    #NOT WORKING ON PX4
-    vehicle.simple_takeoff(aTargetAltitude)
-
-    # Wait until the vehicle reaches a safe height before processing the goto
-    #  (otherwise the command after Vehicle.simple_takeoff will execute
-    #   immediately).
-    while True:
-        print(" Altitude: ", vehicle.location.global_relative_frame.alt)
-        # Break and return from function just below target altitude.
-        if vehicle.location.global_relative_frame.alt >= aTargetAltitude * 0.95:
-            print("Reached target altitude")
-            break
-        time.sleep(1)
-
-    home = vehicle.location.global_relative_frame
-    wp = get_location_offset_meters(home, radius, radius, 0);
-    vehicle.simple_goto(wp, groundspeed=20)
-    time.sleep(15)
-    wp = get_location_offset_meters(home, radius, -radius, 0);
-    vehicle.simple_goto(wp, groundspeed=10)
-    time.sleep(15)
-    vehicle.mode = VehicleMode("RTL")
 
 def unit_vector(vector):
     """ Returns the unit vector of the vector.  """
@@ -141,8 +141,8 @@ def angle_between(v1, v2):
     return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
 
 def havePriority(myPos, enemyPos, myDir):
-    x= enemyPos.lat - myPos.lat
-    y= enemyPos.lon - myPos.lon
+    x = enemyPos.lat - myPos.lat
+    y = enemyPos.lon - myPos.lon
     length = math.sqrt((x*x) + (y*y))
     enemyPosVector = [x, y]
     myDirVector = [math.cos(math.radians(myDir)), math.sin(math.radians(myDir))]
@@ -159,7 +159,8 @@ def havePriority(myPos, enemyPos, myDir):
         return False
     return True
     
-def calculateClosestDistance(ref, my_pos, enemy_pos, my_heading, enemy_heading, my_vel, enemy_vel):
+
+def avoidCollision(ref, my_pos, enemy_pos, my_heading, enemy_heading, my_vel, enemy_vel, ICAO):
     earth_radius=6378137.0 #Radius of "spherical" earth
     #Coordinate offsets in radians
     multiplicatorX = earth_radius / (180/math.pi)
@@ -168,42 +169,105 @@ def calculateClosestDistance(ref, my_pos, enemy_pos, my_heading, enemy_heading, 
     y0t = (my_pos.lon - ref.lon)*multiplicatorY
     x0j = (enemy_pos.lat - ref.lat) * multiplicatorX
     y0j = (enemy_pos.lon - ref.lon) * multiplicatorY
-    print("my coords: ", x0t, ", ", y0t, ", enemy's coords:", x0j, ", ", y0j)
+    #print("my coords: ", x0t, ", ", y0t, ", enemy's coords:", x0j, ", ", y0j)
+    ##derivative to find closest point between our paths
     a = (my_vel * math.cos(math.radians(my_heading)) - enemy_vel * math.cos(math.radians(enemy_heading)))
     b = (my_vel * math.sin(math.radians(my_heading)) - enemy_vel * math.sin(math.radians(enemy_heading)))
     t = (-(x0t - x0j)*a - (y0t - y0j)*b) / (a*a + b*b)
-    print("minimum for time:", t)
+    #print("minimum for time:", t)
     d = math.sqrt(math.pow(x0j - x0t - t * a, 2) + math.pow(y0j - y0t - t*b, 2))
-    return d
-    
+    if(d < 15 and  t > 0):
+        ##avoid collision
+        R=15
+        alpha = 0.0
+        AC = 0.0
+        AB = math.sqrt(math.pow(x0t - x0j, 2) + math.pow(y0t - y0j, 2))
+        if(AB < R): 
+            AC = R
+            alpha = 90.0
+        else: 
+            AC = math.sqrt(AB*AB - R*R) 
+            alpha = math.degrees(math.asin(R/AB))
+        print("angle to turn right: ", alpha)
+
+        x= enemy_pos.lat - my_pos.lat
+        y= enemy_pos.lon - my_pos.lon
+        length = math.sqrt((x*x) + (y*y))
+        enemyPosVector = [x, y]
+        myDirVector = [math.cos(math.radians(my_heading)), math.sin(math.radians(my_heading))]
+        angleBetweenUs = math.degrees(angle_between(myDirVector, enemyPosVector))
+        crossProduct = x*myDirVector[1] - y * myDirVector[0]
+        if(crossProduct < 0):
+            finalAngle = my_heading + angleBetweenUs + alpha
+        else:
+            finalAngle = my_heading - angleBetweenUs + alpha
+        print("angle between us ", angleBetweenUs)
+        if(finalAngle > 360): finalAngle = finalAngle - 360
+        print("final angle ", finalAngle)
+        collisionAvoidX = math.cos(finalAngle) * AC
+        collisionAvoidY = math.sin(finalAngle) * AC
+        finalCoordinateLat = collisionAvoidX / multiplicatorX + ref.lat
+        finalCoordinateLon = collisionAvoidY / multiplicatorY + ref.lon
+        #print("my coordinates: ", my_pos.lat, ", ", my_pos.lon)
+        #print("collision avoidance coordinates: ", finalCoordinateLat, ", ", finalCoordinateLon)
+        #mdify mission
+        scheduleModification((finalCoordinateLat, finalCoordinateLon), ICAO)
 
 
+def scheduleModification(latlon, ICAO):
+    global collisionHandling
+    global currentCollisionWaypoint
+    global collisionHandleCoordinates
+    global collisionPending
+    if(collisionHandling is None):
+        print("Hello modification scheduler")
+        collisionHandleCoordinates = latlon
+        collisionPending = True
+        collisionHandling = ICAO
+        currentCollisionWaypoint = vehicle.commands.next 
 
 def checkAirplanesDistance(run_event):
     MAX_RADIUS = 20
+    global collisionHandling
+    global currentCollisionWaypoint
     while run_event.is_set():
         vehicle_pos = vehicle.location.global_relative_frame
+        time.sleep(0.5)
+        if(currentCollisionWaypoint is not -1 ):
+            if(currentCollisionWaypoint != vehicle.commands.next) :
+                collisionHandling = None
+                currentCollisionWaypoint = -1
+            continue
         readtr1w.checkingAirplanes = True
         for ICAO, airplaneData in readtr1w.airplanes.items():
             loc = LocationGlobalRelative(airplaneData["latitude"], airplaneData["longitude"])
             dist = get_distance_metres(vehicle_pos, loc)
             #print("Distance: ", dist)
-            if(not havePriority(vehicle_pos, loc, vehicle.heading) and dist < MAX_RADIUS):
-                velValue = np.linalg.norm(vehicle.velocity)
-                #print("My velocity:", velValue)
-                dist = calculateClosestDistance(vehicle.home_location, vehicle_pos, loc, vehicle.heading,
-                             airplaneData["dir"], velValue, airplaneData["h_velocity"])
-                print("Closest calculated distance: ", dist)
+
+
+            if(dist < 10): 
+                print("Game Over")
+                continue
+            if(dist < MAX_RADIUS and not havePriority(vehicle_pos, loc, vehicle.heading)):
+                print("collision detected")
+                avoidCollision(vehicle.home_location, vehicle_pos, loc, vehicle.heading,
+                    airplaneData["dir"], np.linalg.norm(vehicle.velocity), airplaneData["h_velocity"], ICAO)
+                # print("Closest calculated distance: ", dist)
 
         readtr1w.checkingAirplanes = False
-        time.sleep(0.2)
+
+collisionPending = False
+collisionHandling = None
+currentCollisionWaypoint = -1
+collisionHandleCoordinates = None
+
 
 vehicle = connectPixhawk()
 vehicle.groundspeed = 20
 altitude = 4
-radius = 10
+radius = 15
 
-readtr1w.addFakeAirPlane(vehicle.location.global_relative_frame, radius + 5)
+readtr1w.addFakeAirPlane(vehicle.location.global_relative_frame, radius + 10)
 
 run_event = threading.Event()
 run_event.set()
