@@ -38,7 +38,7 @@ def processTo(data, fnctn):
     else:
         return fnctn("0");
 
-def readTransponder(dev):
+def readTransponder(run_event, dev):
     try:
         ser = serial.Serial(dev, 115200, timeout=1)
         sio = io.TextIOWrapper(io.BufferedReader(ser), newline="\r\n")
@@ -47,7 +47,7 @@ def readTransponder(dev):
         print("Couldn't open tr1w device, anti-collision is not working")
         return
     try:
-        while True:
+        while run_event.is_set():
             line = sio.readline()
             if(len(line) == 0): continue
             data = line[3:].strip('\r\n').split(',')
