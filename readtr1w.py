@@ -6,7 +6,7 @@ airplanes = {}
 checkingAirplanes = False
 
 def addFakeAirPlane(vehicle_pos, distance):
-    wp = get_location_offset_meters(vehicle_pos, 0, distance, 0)
+    wp = get_location_offset_meters(vehicle_pos, 0, distance + 10, 0)
     aircraftData = {
     "flags":0x02,
     "latitude":wp.lat,
@@ -17,7 +17,7 @@ def addFakeAirPlane(vehicle_pos, distance):
     "dir":270
     }
     airplanes["0"] = aircraftData 
-    wp = get_location_offset_meters(vehicle_pos, 0, -distance, 0)
+    wp = get_location_offset_meters(vehicle_pos, 0, -(distance + 10), 0)
     aircraftData = {
     "flags":0x02,
     "latitude":wp.lat,
@@ -28,6 +28,17 @@ def addFakeAirPlane(vehicle_pos, distance):
     "dir":90
     }
     airplanes["1"] = aircraftData
+    wp = get_location_offset_meters(vehicle_pos, -distance, distance/2, 0)
+    aircraftData = {
+    "flags":0x02,
+    "latitude":wp.lat,
+    "longitude":wp.lon,
+    "altitude":wp.alt,
+    "v_velocity":0.0,
+    "h_velocity":3.0,
+    "dir":270
+    }
+    airplanes["2"] = aircraftData
     # print("fake airplanes added: ", airplanes)
 
 
@@ -73,7 +84,9 @@ def readTransponder(run_event, dev):
                 }
                 while(checkingAirplanes):
                     time.sleep(0.05)
+                checkingAirplanes = True
                 airplanes[ICAO] = aircraftData 
+                checkingAirplanes = False
                 #print(aircraftData)
                 #print("Aircraft, ICAO: ", data[0], ", lat: ", data[4], ", lon: ", data[5], ", alt: ", data[6], ", track: ", data[7], ", VELH: ", float(data[8]) * 1.852)
             else:

@@ -16,53 +16,49 @@ from communications import *
 from helperFunctions import *
 import numpy as np
 
+collisionPending = False
+collisionHandling = None
+altitude = 4
         
-def modifyMission():
+def modifyMission(collisionHandleCoordinates):
     print("Hello mission modifier")
-    vehicle.home_location = LocationGlobal(vehicle.location.global_frame.lat, vehicle.location.global_frame.lon,vehicle.home_location.lat)
     cmds = vehicle.commands
     currentCollisionWaypoint = vehicle.commands.next - 1
     missionlist=[]
     missionlist.append(nav_command(LocationGlobalRelative(collisionHandleCoordinates[0], collisionHandleCoordinates[1], altitude)))
     for index, cmd in enumerate(cmds):
-        if(index > currentCollisionWaypoint):
+        if(index >= currentCollisionWaypoint):
             missionlist.append(cmd)
     print("Old mission size: ", len(cmds))
     cmds.clear()
-    vehicle.commands.next = 0
-    # print(missionlist)
-    print("New mission size: ",len(missionlist))
-    print("not inserted commands: ",currentCollisionWaypoint)
-    print("next command",vehicle.commands.next )
-    # time.sleep(0.2)
-    #Write the modified mission and flush to the vehicle
     for cmd in missionlist:
         cmds.add(cmd)
     cmds.upload()
-    time.sleep(1)
+    vehicle.commands.next = 0
+    print("New mission size: ",len(missionlist))
+    print("not inserted commands: ",currentCollisionWaypoint)
+    print("next command",vehicle.commands.next )
 
 def follow_waypoints(vehicle):
     global collisionPending
     global collisionHandling
     nextwaypoint = vehicle.commands.next
-    while nextwaypoint < len(vehicle.commands):
+    while (nextwaypoint < len(vehicle.commands)) or collisionPending:
         if(collisionPending):
-            modifyMission()
             nextwaypoint = vehicle.commands.next
             print(nextwaypoint)
             collisionPending = False
         elif vehicle.commands.next > nextwaypoint:
             if(collisionHandling is not None) :
+                while (readtr1w.checkingAirplanes):
+                    time.sleep(0.05)
+                # for debugging purpose only
                 readtr1w.checkingAirplanes = True
-                del readtr1w.airplanes[collisionHandling]
+                readtr1w.airplanes.pop(collisionHandling)
                 readtr1w.checkingAirplanes = False
                 collisionHandling = None
             print("Moving to waypoint %s" % vehicle.commands.next)
             nextwaypoint = vehicle.commands.next
-        # if(nextwaypoint == 3):
-        #     vehicle.commands.clear()
-        #     PX4RTL(vehicle)
-        #     break
         time.sleep(1)
     while vehicle.commands.next > 0: #last command
         time.sleep(1)
@@ -76,47 +72,46 @@ def execMission():
     vehicle.armed = False
     time.sleep(1)
 
-def PX4mission(radius, altitude):
-    PX4setMode(vehicle, MAV_MODE_AUTO)
-    time.sleep(1)
+
+def ArdupilotMission(radius, altitude):
+
     cmds = vehicle.commands
     cmds.clear() 
     home = vehicle.location.global_relative_frame
-    wp = get_location_offset_meters(home, 0, 0, altitude);
-    radius_to_pass_by = 5
-    acceptance_radius = 5
-
+    wp = get_location_offset_meters(home, 0, 0, altitude)
+    radius_to_pass_by = 1
+    acceptance_radius = 1
 
     cmds.add(takeoff_command(wp))
     # move north
-    wp = get_location_offset_meters(wp, radius, 0, 0);
+    wp = get_location_offset_meters(wp, radius, 0, 0)
     cmds.add(nav_command(wp, acceptance_radius, radius_to_pass_by))
 
     # move west
-    wp = get_location_offset_meters(wp, 0, -radius, 0);
+    wp = get_location_offset_meters(wp, 0, -radius, 0)
     cmds.add(nav_command(wp, acceptance_radius, radius_to_pass_by))
 
     # move south
-    wp = get_location_offset_meters(wp, -2*radius, 0, 0);
+    wp = get_location_offset_meters(wp, -2*radius, 0, 0)
     cmds.add(nav_command(wp, acceptance_radius, radius_to_pass_by))
 
     # move east
-    wp = get_location_offset_meters(wp, 0, 2*radius, 0);
+    wp = get_location_offset_meters(wp, 0, 2*radius, 0)
     cmds.add(nav_command(wp, acceptance_radius, radius_to_pass_by))
 
-    wp = get_location_offset_meters(wp, 2*radius, 0, 0);
+    wp = get_location_offset_meters(wp, 2*radius, 0, 0)
     cmds.add(nav_command(wp, acceptance_radius, radius_to_pass_by))
 
-    wp = get_location_offset_meters(wp, 0, -radius, 0);
+    wp = get_location_offset_meters(wp, 0, -radius, 0)
     cmds.add(nav_command(wp, acceptance_radius, radius_to_pass_by))
     # land
-    wp = get_location_offset_meters(home, 0, 0, altitude);
+    wp = get_location_offset_meters(home, 0, 0, altitude)
     cmds.add(land_command(wp))
 
     # Upload mission
     cmds.upload()
-    time.sleep(1)
-
+    arm_and_takeoff(vehicle, altitude)
+    vehicle.mode = VehicleMode("AUTO")
     execMission()
 
 
@@ -129,6 +124,8 @@ def takeoff_land(altitude):
     cmds.add(loiter_command(wp,5))
     cmds.add(land_command(wp))
     cmds.upload()
+    arm_and_takeoff(vehicle, altitude)
+    vehicle.mode = VehicleMode("AUTO")
     time.sleep(1)
     execMission()
 
@@ -198,11 +195,10 @@ def avoidCollision(ref, my_pos, enemy_pos, my_heading, enemy_heading, my_vel, en
         else: 
             AC = math.sqrt(AB*AB - R*R) 
             alpha = math.degrees(math.asin(R/AB))
-        print("angle to turn right: ", alpha)
+        #print("angle to turn right: ", alpha)
 
         x= enemy_pos.lat - my_pos.lat
         y= enemy_pos.lon - my_pos.lon
-        length = math.sqrt((x*x) + (y*y))
         enemyPosVector = [x, y]
         myDirVector = [math.cos(math.radians(my_heading)), math.sin(math.radians(my_heading))]
         angleBetweenUs = math.degrees(angle_between(myDirVector, enemyPosVector))
@@ -213,13 +209,14 @@ def avoidCollision(ref, my_pos, enemy_pos, my_heading, enemy_heading, my_vel, en
             finalAngle = my_heading - angleBetweenUs + alpha
         #print("angle between us ", angleBetweenUs)
         if(finalAngle > 360): finalAngle = finalAngle - 360
-        print("displacement length: ", AC)
-        collisionAvoidX =(math.cos(finalAngle) * AC) + x0t
-        collisionAvoidY = (math.sin(finalAngle) * AC) + y0t
+        # print("displacement length: ", AC)
+        #print("final angle: ", finalAngle)
+        collisionAvoidX =(math.cos(math.radians(finalAngle)) * AC) + x0t
+        collisionAvoidY = (math.sin(math.radians(finalAngle)) * AC) + y0t
         finalCoordinateLat = collisionAvoidX / multiplicatorX + ref.lat
         finalCoordinateLon = collisionAvoidY / multiplicatorY + ref.lon
-        print("collisionAvoidCoordinates: ", collisionAvoidX - x0t, ", ", collisionAvoidY - y0t)
-        print("collisionAvoidCoordinates relative to home: ", collisionAvoidX, ", ", collisionAvoidY )
+        # print("collisionAvoidCoordinates: ", collisionAvoidX - x0t, ", ", collisionAvoidY - y0t)
+        # print("collisionAvoidCoordinates relative to home: ", collisionAvoidX, ", ", collisionAvoidY )
         #print("my coordinates: ", my_pos.lat, ", ", my_pos.lon)
         #print("collision avoidance coordinates: ", finalCoordinateLat, ", ", finalCoordinateLon)
         #mdify mission
@@ -228,30 +225,27 @@ def avoidCollision(ref, my_pos, enemy_pos, my_heading, enemy_heading, my_vel, en
 
 def scheduleModification(latlon, ICAO):
     global collisionHandling
-    global collisionHandleCoordinates
     global collisionPending
     if(collisionHandling is None):
         print("Hello modification scheduler")
-        collisionHandleCoordinates = latlon
-        collisionPending = True
+        modifyMission(latlon)
         collisionHandling = ICAO
+        collisionPending = True
 
 
 def checkAirplanesDistance(run_event):
-    MAX_RADIUS = 20
-    global collisionHandling
-    global currentCollisionWaypoint
+    MAX_RADIUS = 25
     while run_event.is_set():
         vehicle_pos = vehicle.location.global_relative_frame
         time.sleep(0.5)
         if(collisionHandling is not None ):
             continue
+        while(readtr1w.checkingAirplanes):
+            time.sleep(0.05)
         readtr1w.checkingAirplanes = True
         for ICAO, airplaneData in readtr1w.airplanes.items():
             loc = LocationGlobalRelative(airplaneData["latitude"], airplaneData["longitude"])
             dist = get_distance_metres(vehicle_pos, loc)
-            #print("Distance: ", dist)
-
 
             if(dist < 10): 
                 print("Game Over")
@@ -264,17 +258,15 @@ def checkAirplanesDistance(run_event):
 
         readtr1w.checkingAirplanes = False
 
-collisionPending = False
-collisionHandling = None
-collisionHandleCoordinates = None
+
 
 
 vehicle = connectPixhawk()
-vehicle.groundspeed = 5
-altitude = 4
-radius = 20
+vehicle.groundspeed = 3
 
-readtr1w.addFakeAirPlane(vehicle.location.global_relative_frame, radius + 10)
+radius = 50
+
+readtr1w.addFakeAirPlane(vehicle.location.global_relative_frame, radius)
 
 
 
@@ -285,7 +277,7 @@ try:
     tr1wGatherThread.start()
     tr1wDataThread = threading.Thread(target = checkAirplanesDistance, args = (run_event,))
     tr1wDataThread.start()
-    # PX4mission(radius, altitude)
+    ArdupilotMission(radius, altitude)
 except KeyboardInterrupt:
     run_event.clear()
     tr1wGatherThread.join()

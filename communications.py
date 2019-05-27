@@ -36,18 +36,19 @@ def connectPixhawk():
         return vehicle
     
 def init(vehicle):
-    udp_conn = dronekit.mavlink.MAVConnection('udpin:0.0.0.0:15667', source_system=1)
-    vehicle._handler.pipe(udp_conn)
-    udp_conn.master.mav.srcComponent = 1
-    udp_conn.start
-    print('udp launched')
-    #Create a message listener for home position fix
-    @vehicle.on_message('HOME_POSITION')
-    def listener(self, name, home_position):
-        global home_position_set
-        home_position_set = True
-
-    while not home_position_set:
+    # udp_conn = dronekit.mavlink.MAVConnection('udpin:0.0.0.0:15667', source_system=1)
+    # vehicle._handler.pipe(udp_conn)
+    # udp_conn.master.mav.srcComponent = 1
+    # udp_conn.start
+    # print('udp launched')
+    
+    #Create a message listener for home position fix PX4 ONLY
+    # @vehicle.on_message('HOME_POSITION')
+    # def listener(self, name, home_position):
+    #     global home_position_set
+    #     home_position_set = True
+    vehicle.commands.download()
+    while not vehicle.home_location:
         print( "Waiting for home position...")
         time.sleep(1)
 
