@@ -24,7 +24,7 @@ def connectPixhawk():
     # Connect to the Vehicle
     if not connection_string:
         print( "Connecting UART")
-        vehicle = connect(serial_connection, wait_ready=True, baud=921600)
+        vehicle = connect(serial_connection, wait_ready=True, baud=baud_rate)
         print( "connected")
         init(vehicle)     
         return vehicle

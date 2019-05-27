@@ -274,7 +274,7 @@ vehicle.groundspeed = 5
 altitude = 4
 radius = 20
 
-# readtr1w.addFakeAirPlane(vehicle.location.global_relative_frame, radius + 10)
+readtr1w.addFakeAirPlane(vehicle.location.global_relative_frame, radius + 10)
 
 
 
