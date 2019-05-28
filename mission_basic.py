@@ -18,14 +18,13 @@ import numpy as np
 
 collisionPending = False
 collisionHandling = None
-altitude = 4
         
-def modifyMission(collisionHandleCoordinates):
+def modifyMission(vehicle, collisionHandleCoordinates):
     print("Hello mission modifier")
     cmds = vehicle.commands
     currentCollisionWaypoint = vehicle.commands.next - 1
     missionlist=[]
-    missionlist.append(nav_command(LocationGlobalRelative(collisionHandleCoordinates[0], collisionHandleCoordinates[1], altitude)))
+    missionlist.append(nav_command(LocationGlobalRelative(collisionHandleCoordinates[0], collisionHandleCoordinates[1], vehicle.location.global_relative_frame.alt)))
     for index, cmd in enumerate(cmds):
         if(index >= currentCollisionWaypoint):
             missionlist.append(cmd)
@@ -63,17 +62,19 @@ def follow_waypoints(vehicle):
     while vehicle.commands.next > 0: #last command
         time.sleep(1)
 
-def execMission():
+def execMission(vehicle, altitude):
     #arm_and_takeoff(altitude)
-    vehicle.armed=True
+    arm_and_takeoff(vehicle, altitude)
+    vehicle.mode = VehicleMode("AUTO")
     # monitor mission execution
     follow_waypoints(vehicle)
-
-    vehicle.armed = False
+    #only disarm 
+    if(vehicle.location.global_relative_frame.alt < 1):
+        vehicle.armed = False
     time.sleep(1)
 
 
-def ArdupilotMission(radius, altitude):
+def ArdupilotMission(vehicle, radius, altitude):
 
     cmds = vehicle.commands
     cmds.clear() 
@@ -110,12 +111,10 @@ def ArdupilotMission(radius, altitude):
 
     # Upload mission
     cmds.upload()
-    arm_and_takeoff(vehicle, altitude)
-    vehicle.mode = VehicleMode("AUTO")
-    execMission()
+    execMission(vehicle, altitude)
 
 
-def takeoff_land(altitude):
+def takeoff_land(vehicle, altitude):
     cmds = vehicle.commands
     cmds.clear() 
     home = vehicle.location.global_relative_frame
@@ -124,29 +123,25 @@ def takeoff_land(altitude):
     cmds.add(loiter_command(wp,5))
     cmds.add(land_command(wp))
     cmds.upload()
-    arm_and_takeoff(vehicle, altitude)
-    vehicle.mode = VehicleMode("AUTO")
-    time.sleep(1)
-    execMission()
 
+    execMission(vehicle, altitude)
 
-def unit_vector(vector):
-    """ Returns the unit vector of the vector.  """
-    return vector / np.linalg.norm(vector)
+def simple_go_and_move_back(vehicle, altitude, radius):
+    cmds = vehicle.commands
+    cmds.clear() 
+    home = vehicle.location.global_relative_frame
+    wp = get_location_offset_meters(home, 0, 0, altitude)
+    cmds.add(takeoff_command(wp)) 
+    wp = get_location_offset_meters(wp, 0, -radius, 0)
+    cmds.add(nav_command(wp,1,1))
+    wp = get_location_offset_meters(wp, 0, radius, 0)
+    cmds.add(nav_command(wp,1,1))
+    wp = get_location_offset_meters(home, 0, 0, altitude)
+    cmds.add(land_command(wp))
+    cmds.upload()
 
-def angle_between(v1, v2):
-    """ Returns the angle in radians between vectors 'v1' and 'v2'::
+    execMission(vehicle, altitude)
 
-            >>> angle_between((1, 0, 0), (0, 1, 0))
-            1.5707963267948966
-            >>> angle_between((1, 0, 0), (1, 0, 0))
-            0.0
-            >>> angle_between((1, 0, 0), (-1, 0, 0))
-            3.141592653589793
-    """
-    v1_u = unit_vector(v1)
-    v2_u = unit_vector(v2)
-    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
 
 def havePriority(myPos, enemyPos, myDir):
     x = enemyPos.lat - myPos.lat
@@ -167,7 +162,10 @@ def havePriority(myPos, enemyPos, myDir):
     return True
     
 
-def avoidCollision(ref, my_pos, enemy_pos, my_heading, enemy_heading, my_vel, enemy_vel, ICAO):
+def avoidCollision(vehicle, enemy_pos, enemy_heading, my_vel, enemy_vel, ICAO):
+    ref = vehicle.home_location
+    my_pos = vehicle.location.global_relative_frame
+    my_heading = vehicle.heading
     earth_radius=6378137.0 #Radius of "spherical" earth
     #Coordinate offsets in radians
     multiplicatorX = earth_radius / (180/math.pi)
@@ -220,20 +218,20 @@ def avoidCollision(ref, my_pos, enemy_pos, my_heading, enemy_heading, my_vel, en
         #print("my coordinates: ", my_pos.lat, ", ", my_pos.lon)
         #print("collision avoidance coordinates: ", finalCoordinateLat, ", ", finalCoordinateLon)
         #mdify mission
-        scheduleModification((finalCoordinateLat, finalCoordinateLon), ICAO)
+        scheduleModification(vehicle, (finalCoordinateLat, finalCoordinateLon), ICAO)
 
 
-def scheduleModification(latlon, ICAO):
+def scheduleModification(vehicle, latlon, ICAO):
     global collisionHandling
     global collisionPending
     if(collisionHandling is None):
         print("Hello modification scheduler")
-        modifyMission(latlon)
+        modifyMission(vehicle, latlon)
         collisionHandling = ICAO
         collisionPending = True
 
 
-def checkAirplanesDistance(run_event):
+def checkAirplanesDistance(run_event, vehicle):
     MAX_RADIUS = 25
     while run_event.is_set():
         vehicle_pos = vehicle.location.global_relative_frame
@@ -252,53 +250,71 @@ def checkAirplanesDistance(run_event):
                 continue
             if(dist < MAX_RADIUS and not havePriority(vehicle_pos, loc, vehicle.heading)):
                 print("collision detected")
-                avoidCollision(vehicle.home_location, vehicle_pos, loc, vehicle.heading,
-                    airplaneData["dir"], np.linalg.norm(vehicle.velocity), airplaneData["h_velocity"], ICAO)
+                avoidCollision(vehicle,loc, airplaneData["dir"], np.linalg.norm(vehicle.velocity), airplaneData["h_velocity"], ICAO)
                 # print("Closest calculated distance: ", dist)
 
         readtr1w.checkingAirplanes = False
 
 
+def main():
+    altitude = 4
+    radius = 20
+    # Parse connection argument
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", "--connect", help="connection string")
+    parser.add_argument("-m", "--mission", help="mission_to_play")
+    parser.add_argument("-alt", "--altitude", help="default altitude")
+    parser.add_argument("-r", "--radius", help="default radius")
+    args = parser.parse_args()
+    connection_string=args.connect
+    currentMission=args.mission
+
+    if(args.radius):
+        radius = args.radius
+    if(args.altitude):
+        altitude = args.altitude
+    vehicle = connectPixhawk(connection_string)
+    vehicle.groundspeed = 3
 
 
-vehicle = connectPixhawk()
-vehicle.groundspeed = 3
-
-radius = 50
-
-readtr1w.addFakeAirPlane(vehicle.location.global_relative_frame, radius)
-
-
-
-try:
-    run_event = threading.Event()
-    run_event.set()
-    tr1wGatherThread = threading.Thread(target = readtr1w.readTransponder, args = (run_event,'/dev/ttyUSB0'))
-    tr1wGatherThread.start()
-    tr1wDataThread = threading.Thread(target = checkAirplanesDistance, args = (run_event,))
-    tr1wDataThread.start()
-    ArdupilotMission(radius, altitude)
-except KeyboardInterrupt:
+    try:
+        run_event = threading.Event()
+        run_event.set()
+        tr1wGatherThread = threading.Thread(target = readtr1w.readTransponder, args = (run_event,'/dev/ttyUSB0'))
+        tr1wGatherThread.start()
+        tr1wDataThread = threading.Thread(target = checkAirplanesDistance, args = (run_event,vehicle))
+        tr1wDataThread.start()
+        if not currentMission:
+            takeoff_land(vehicle, altitude)
+        elif currentMission == "simple":
+            simple_go_and_move_back(vehicle, altitude, radius)
+        elif currentMission == "long":
+            readtr1w.addFakeAirPlane(vehicle.location.global_relative_frame, radius)
+            ArdupilotMission(vehicle, radius, altitude)
+    except KeyboardInterrupt:
+        run_event.clear()
+        tr1wGatherThread.join()
+        tr1wDataThread.join()
+        print("Thread closed")
+        exit
+    except:
+        run_event.clear()
+        tr1wGatherThread.join()
+        tr1wDataThread.join()
+        print("Thread closed")
+        raise
+    #simple_goto(altitude, radius)
+    #RTL wznosi sie na 15 m w symulatorze
+    #adds_square_mission(vehicle.location.global_relative_frame,radius, altitude)
+    #takeoff_land(altitude)
+    #testAutoMode()
     run_event.clear()
     tr1wGatherThread.join()
     tr1wDataThread.join()
     print("Thread closed")
-except:
-    run_event.clear()
-    tr1wGatherThread.join()
-    tr1wDataThread.join()
-    print("Thread closed")
-    raise
-#simple_goto(altitude, radius)
-#RTL wznosi sie na 15 m w symulatorze
-#adds_square_mission(vehicle.location.global_relative_frame,radius, altitude)
-#takeoff_land(altitude)
-#testAutoMode()
-run_event.clear()
-tr1wGatherThread.join()
-tr1wDataThread.join()
-print("Thread closed")
-# Close vehicle object before exiting script
-vehicle.close()
-# time.sleep(1)
+    # Close vehicle object before exiting script
+    vehicle.close()
+    # time.sleep(1)
 
+if __name__ == "__main__":
+   main()

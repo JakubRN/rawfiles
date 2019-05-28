@@ -4,16 +4,17 @@ import argparse
 import cv2
 import time
 
-cap = cv2.VideoCapture(0)
+
  
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-n", "--name", help="movie name")
+parser.add_argument("-n", "--name", help="movie name", required=True)
 args = parser.parse_args()
 movieName=args.name
 movieName += '.avi'
 print(movieName)
 # Check if camera opened successfully
+cap = cv2.VideoCapture(0)
 if (cap.isOpened() == False): 
     print("Unable to read camera feed")
     exit
@@ -21,7 +22,9 @@ if (cap.isOpened() == False):
 frame_width = int(cap.get(3))
 frame_height = int(cap.get(4))
 
-out = cv2.VideoWriter('outpy.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 10, (frame_width,frame_height))
+
+
+out = cv2.VideoWriter(movieName,cv2.VideoWriter_fourcc('M','J','P','G'), 10, (frame_width,frame_height))
  
 while(True):
   ret, frame = cap.read()
