@@ -49,12 +49,12 @@ try:
       delay += 1
       # Write the frame into the file
       out.write(frame)
-
+      cv2.imshow(WINDOW_NAME,frame)
       if(delay == 10000):
           break
 
       # Display the resulting frame    
-       cv2.imshow(WINDOW_NAME,frame)
+
       
 # Press Q on keyboard to stop recording
       if cv2.waitKey(1) & 0xFF == ord('q'):
