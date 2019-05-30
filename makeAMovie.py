@@ -15,8 +15,8 @@ def open_window(width, height):
 parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--name", help="movie name", required=True)
 parser.add_argument("-v", "--video", help="video camera input", default='dev/video0')
-parser.add_argument("-w", "--width", help=" camera width", default=3840)
-parser.add_argument("-h", "--height", help=" camera height", default=1920)
+parser.add_argument("-w", "--width", help="camera width", default=3840)
+parser.add_argument("-he", "--height", help="camera height", default=1920)
 args = parser.parse_args()
 videoName=args.video
 movieName=args.name
