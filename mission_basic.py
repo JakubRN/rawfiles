@@ -337,7 +337,7 @@ def main():
     print("Thread closed")
     # Close vehicle object before exiting script
     vehicle.close()
-    # time.sleep(1)
+    time.sleep(1)
 
 if __name__ == "__main__":
    main()

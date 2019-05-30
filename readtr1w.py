@@ -81,7 +81,6 @@ def readTransponder(run_event, dev):
             if(line[1] == 'S'):
                 print("Status: CPU load: ", data[0])	
             elif(line[1] == 'A'):
-                print("data len: ", len(data))
                 ICAO = data[0]	
                 FLAGS = data[1]
                 GPS_LAT = processTo(data[4], float)
@@ -90,7 +89,6 @@ def readTransponder(run_event, dev):
                 horizontalVelocity = processTo(data[8], float)*1.852
                 verticalVelocity = processTo(data[9], float) * 0.00508
                 directionAzimuth = processTo(data[7], int)
-                print("debug")
                 aircraftData = {
                     "flags":FLAGS,
                     "latitude":GPS_LAT,
