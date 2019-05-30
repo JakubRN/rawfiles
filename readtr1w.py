@@ -65,8 +65,7 @@ def readTransponder(run_event, dev):
             line = sio.readline()
             print("tr1w line read")
             print(line.rsplit(',', 1)[0])
-            print(line.rsplit(',', 1)[0].decode("hex"))
-            crc16out = crc16(line.rsplit(',', 1)[0].decode("hex"))
+            crc16out = crc16(line.rsplit(',', 1)[0])
             print("crc16 computed:", crc16out )
             if(len(line) == 0): continue
             data = line[3:].strip('\r\n').split(',')
