@@ -30,15 +30,12 @@ if (cap.isOpened() == False):
     print("Unable to read camera feed")
     exit
 
-# frame_width = int(cap.get(3))
-# frame_height = int(cap.get(4))
-
-# cap.set(cv2.CAP_PROP_BUFFERSIZE,1)
+cap.set(cv2.CAP_PROP_BUFFERSIZE,1)
 frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 print(frame_height, ", ", frame_width)
-# open_window(int(w), int(h))
+open_window(int(frame_width/2), int(frame_height/2))
 
 out = cv2.VideoWriter(movieName,cv2.VideoWriter_fourcc('M','J','P','G'), 10, (frame_width,frame_height))
  
@@ -50,12 +47,14 @@ try:
     
     if ret == True: 
       delay += 1
-      # Write the frame into the file 'output.avi'
+      # Write the frame into the file
       out.write(frame)
+
       if(delay == 10000):
           break
+
       # Display the resulting frame    
-      cv2.imshow('frame',frame)
+      cv2.imshow(WINDOW_NAME,frame)
       
 # Press Q on keyboard to stop recording
       if cv2.waitKey(1) & 0xFF == ord('q'):
