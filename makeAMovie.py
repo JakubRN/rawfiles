@@ -15,6 +15,8 @@ def open_window(width, height):
 parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--name", help="movie name", required=True)
 parser.add_argument("-v", "--video", help="video camera input", default='dev/video0')
+parser.add_argument("-w", "--width", help=" camera width", default=3840)
+parser.add_argument("-h", "--height", help=" camera height", default=1920)
 args = parser.parse_args()
 videoName=args.video
 movieName=args.name
@@ -24,8 +26,8 @@ cap = cv2.VideoCapture(videoName)
 if (cap.isOpened() == False): 
     print("Failed, trying to open on default port")
     cap = cv2.VideoCapture(0)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH,1920)     #horizontal pixels
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT,1080)     #vertical pixels
+cap.set(cv2.CAP_PROP_FRAME_WIDTH,args.width)     #horizontal pixels
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT,args.height)     #vertical pixels
 if (cap.isOpened() == False):     
     print("Unable to read camera feed")
     exit
@@ -35,7 +37,7 @@ frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 print(frame_height, ", ", frame_width)
-open_window(int(frame_width/2), int(frame_height/2))
+open_window(min(int(frame_width/2),1920), min(int(frame_height/2), 1080))
 
 out = cv2.VideoWriter(movieName,cv2.VideoWriter_fourcc('M','J','P','G'), 10, (frame_width,frame_height))
  
