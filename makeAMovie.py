@@ -9,12 +9,14 @@ import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--name", help="movie name", required=True)
+parser.add_argument("-v", "--video", help="video camera input", required=True, default=0)
 args = parser.parse_args()
+videoName=args.video
 movieName=args.name
 movieName += '.avi'
 print(movieName)
 # Check if camera opened successfully
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(videoName)
 if (cap.isOpened() == False): 
     print("Unable to read camera feed")
     exit
