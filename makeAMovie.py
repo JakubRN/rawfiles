@@ -24,8 +24,8 @@ cap = cv2.VideoCapture(videoName)
 if (cap.isOpened() == False): 
     print("Failed, trying to open on default port")
     cap = cv2.VideoCapture(0)
-# cap.set(3,1920)     #horizontal pixels
-# cap.set(4,1080)     #vertical pixels
+cap.set(cv2.CAP_PROP_FRAME_WIDTH,1920)     #horizontal pixels
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT,1080)     #vertical pixels
 if (cap.isOpened() == False):     
     print("Unable to read camera feed")
     exit
