@@ -21,7 +21,7 @@ movieName=args.name
 movieName += '.avi'
 print(movieName)
 # Check if camera opened successfully
-cap = cv2.VideoCapture(videoName)
+cap = cv2.VideoCapture(0)
 if (cap.isOpened() == False): 
     cap = cv2.VideoCapture(0)
 # cap.set(3,1920)     #horizontal pixels
@@ -42,20 +42,22 @@ frame_height = int(cap.get(4))
 
 out = cv2.VideoWriter(movieName,cv2.VideoWriter_fourcc('M','J','P','G'), 10, (frame_width,frame_height))
  
-
+print("start reading")
+delay = 0
 try:
   while(True):
     ret, frame = cap.read()
-  
+    
     if ret == True: 
-      
+      delay += 1
       # Write the frame into the file 'output.avi'
       out.write(frame)
-  
+      if(delay == 10000):
+          break
       # Display the resulting frame    
       cv2.imshow('frame',frame)
-  
-      # Press Q on keyboard to stop recording
+      
+# Press Q on keyboard to stop recording
       if cv2.waitKey(1) & 0xFF == ord('q'):
         break
   
@@ -66,7 +68,7 @@ except:
   # When everything done, release the video capture and video write objects
   cap.release()
   out.release()
-  
+  print("safely closing files")
   # Closes all the frames
   cv2.destroyAllWindows() 
   exit
