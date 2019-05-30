@@ -35,7 +35,7 @@ frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 print(frame_height, ", ", frame_width)
-# open_window(int(frame_width/2), int(frame_height/2))
+open_window(int(frame_width/2), int(frame_height/2))
 
 out = cv2.VideoWriter(movieName,cv2.VideoWriter_fourcc('M','J','P','G'), 10, (frame_width,frame_height))
  
@@ -54,7 +54,7 @@ try:
           break
 
       # Display the resulting frame    
-    #   cv2.imshow(WINDOW_NAME,frame)
+       cv2.imshow(WINDOW_NAME,frame)
       
 # Press Q on keyboard to stop recording
       if cv2.waitKey(1) & 0xFF == ord('q'):
