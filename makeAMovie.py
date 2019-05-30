@@ -30,14 +30,14 @@ if (cap.isOpened() == False):
     print("Unable to read camera feed")
     exit
 
-frame_width = int(cap.get(3))
-frame_height = int(cap.get(4))
+# frame_width = int(cap.get(3))
+# frame_height = int(cap.get(4))
 
 # cap.set(cv2.CAP_PROP_BUFFERSIZE,1)
-# w = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-# h = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-# print(w, ", ", h)
+print(frame_height, ", ", frame_width)
 # open_window(int(w), int(h))
 
 out = cv2.VideoWriter(movieName,cv2.VideoWriter_fourcc('M','J','P','G'), 10, (frame_width,frame_height))
