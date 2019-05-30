@@ -52,6 +52,7 @@ def processTo(data, fnctn):
 
 def readTransponder(run_event, dev):
     global checkingAirplanes
+    global airplanes
     try:
         ser = serial.Serial(dev, 115200, timeout=1)
         sio = io.TextIOWrapper(io.BufferedReader(ser), newline="\r\n")
@@ -80,6 +81,7 @@ def readTransponder(run_event, dev):
             if(line[1] == 'S'):
                 print("Status: CPU load: ", data[0])	
             elif(line[1] == 'A'):
+                 print("data len: ", len(data))
                 ICAO = data[0]	
                 FLAGS = data[1]
                 GPS_LAT = processTo(data[4], float)
