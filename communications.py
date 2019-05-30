@@ -32,7 +32,7 @@ def init(vehicle):
     vehicle._handler.pipe(udp_conn)
     udp_conn.master.mav.srcComponent = 1
     udp_conn.start
-    print('udp launched')
+    print('udp launched at port 15667')
     
     #Create a message listener for home position fix PX4 ONLY
     # @vehicle.on_message('HOME_POSITION')
