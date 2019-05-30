@@ -59,24 +59,22 @@ def readTransponder(run_event, dev):
         print("Couldn't open tr1w device, anti-collision is not working")
         return
     try:
-        crc16 = crcmod.mkCrcFun(0x18005, rev=False, initCrc=0xFFFF, xorOut=0x0000)
+        # crc16 = crcmod.mkCrcFun(0x18005, rev=False, initCrc=0xFFFF, xorOut=0x0000)
         while run_event.is_set():
             time.sleep(0.01)
             line = sio.readline()
-            print("tr1w line read")
-            print(line.rsplit(',', 1)[0])
-            crc16out = crc16(line.rsplit(',', 1)[0])
-            print("crc16 computed:", crc16out )
-            if(len(line) == 0): continue
-            data = line[3:].strip('\r\n').split(',')
-            if(len(data) < 15): 
-                print("too short message")
-                continue
-            if( crc16out != data[14].decode("hex")):
-                print("CRC error")
-                print("computed crc: ", crc16out)
-                print("actual crc: ", data[14].decode("hex"))
-                continue
+            # crcinput = line.strip('\r\n').rsplit(',', 1)
+            # print("tr1w line read: ", crcinput)
+            # crc16out = crc16(crcinput[0])
+            # print("crc16 computed:", crc16out )
+            # if(len(line) == 0): continue
+            # data = line[3:].strip('\r\n').split(',')
+
+            # if( crc16out != crcinput[0].decode("hex")):
+            #     print("CRC error")
+            #     print("computed crc: ", crc16out)
+            #     print("actual crc: ", crcinput[0].decode("hex"))
+            #     continue
             if(line[1] == 'S'):
                 print("Status: CPU load: ", data[0])	
             elif(line[1] == 'A'):
