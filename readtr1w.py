@@ -64,7 +64,7 @@ def readTransponder(run_event, dev):
             time.sleep(0.01)
             line = sio.readline()
             data = line[3:].strip('\r\n').split(',')
-                
+
             # crcinput = line.strip('\r\n').rsplit(',', 1)
             # print("tr1w line read: ", crcinput)
             # crc16out = crc16(crcinput[0])
@@ -79,17 +79,23 @@ def readTransponder(run_event, dev):
             if(line[1] == 'S'):
                 print("Status: CPU load: ", data[0])	
             elif(line[1] == 'A'):
-
-                
-
+                print("debug")
                 ICAO = data[0]	
+                print("debug")
                 FLAGS = data[1]
+                print("debug")
                 GPS_LAT = processTo(data[4], float)
+                print("debug")
                 GPS_LON = processTo(data[5], float)
+                print("debug")
                 ALTITUDE = processTo(data[6], float)*0.3048
+                print("debug")
                 horizontalVelocity = processTo(data[8], float)*1.852
+                print("debug")
                 verticalVelocity = processTo(data[9], float) * 0.00508
+                print("debug")
                 directionAzimuth = processTo(data[7], int)
+                print("debug")
                 aircraftData = {
                     "flags":FLAGS,
                     "latitude":GPS_LAT,
