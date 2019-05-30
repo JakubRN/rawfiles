@@ -45,6 +45,12 @@ print("start reading")
 delay = 0
 try:
   while(True):
+    while (True):
+        ticks = time.time()
+        cap.grab()
+        #print((time.time()-ticks)*cap.get(cv2.CAP_PROP_FPS))
+        if((time.time() - ticks) * cap.get(cv2.CAP_PROP_FPS) > 0.5): 
+            break
     ret, frame = cap.read()
     
     if ret == True: 
