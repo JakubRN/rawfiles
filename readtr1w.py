@@ -2,6 +2,7 @@ import serial, sys
 import io, time
 from dronekit import LocationGlobalRelative
 from helperFunctions import get_location_offset_meters, get_distance_metres
+import crcmod
 airplanes = {}
 checkingAirplanes = False
 
@@ -58,18 +59,32 @@ def readTransponder(run_event, dev):
         print("Couldn't open tr1w device, anti-collision is not working")
         return
     try:
+        crc16 = crcmod.mkCrcFun(0x18005, rev=False, initCrc=0xFFFF, xorOut=0x0000)
         while run_event.is_set():
+            time.sleep(0.01)
             line = sio.readline()
+            crc16 = crc16(line.rsplit(',', 1)[0].decode("hex"))
             if(len(line) == 0): continue
             data = line[3:].strip('\r\n').split(',')
+            if(len(data) < 15): 
+                print("too short message")
+                continue
+            if( crc16 != data[14].decode("hex")):
+                print("CRC error")
+                print("computed crc: ", crc16)
+                print("actual crc: ", data[14].decode("hex"))
+                continue
             if(line[1] == 'S'):
                 print("Status: CPU load: ", data[0])	
             elif(line[1] == 'A'):
+
+                
+
                 ICAO = data[0]	
                 FLAGS = data[1]
                 GPS_LAT = processTo(data[4], float)
                 GPS_LON = processTo(data[5], float)
-                ALTITUDE = processTo(data[6], float)
+                ALTITUDE = processTo(data[6], float)*0.3048
                 horizontalVelocity = processTo(data[8], float)*1.852
                 verticalVelocity = processTo(data[9], float) * 0.00508
                 directionAzimuth = processTo(data[7], int)

@@ -19,6 +19,25 @@ import numpy as np
 collisionPending = False
 collisionHandling = None
         
+
+def landOnMail(vehicle):
+    print("Landing on mail procedure")
+
+    vehicle.mode = VehicleMode("GUIDED")
+    #set gimbal to face downwards
+    #    
+    #drop altitude to 1m while searching for mail
+
+    # go in circles until you find mail
+
+    #centre above mail and align rotation to mail
+
+    #descend 0.3m/s while adjusting position relative to mail
+    verticalFieldOfView = 43.3 #degrees
+    horizontalFieldOfView = 70.42 #degrees
+
+
+
 def modifyMission(vehicle, collisionHandleCoordinates):
     print("Hello mission modifier")
     cmds = vehicle.commands
@@ -43,6 +62,8 @@ def follow_waypoints(vehicle):
     global collisionHandling
     nextwaypoint = vehicle.commands.next
     while (nextwaypoint < len(vehicle.commands)) or collisionPending:
+        print("Rangefinder distance: ", vehicle.rangefinder.distance)
+        print("altitude: ", vehicle.altitude)
         if(collisionPending):
             nextwaypoint = vehicle.commands.next
             print(nextwaypoint)
@@ -69,8 +90,8 @@ def execMission(vehicle, altitude):
     # monitor mission execution
     follow_waypoints(vehicle)
     #only disarm 
-    if(vehicle.location.global_relative_frame.alt < 1):
-        vehicle.armed = False
+    # if(vehicle.location.global_relative_frame.alt < 1):
+        # vehicle.armed = False # never disarm for now
     time.sleep(1)
 
 
@@ -261,10 +282,10 @@ def main():
     radius = 20
     # Parse connection argument
     parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--connect", help="connection string")
-    parser.add_argument("-m", "--mission", help="mission_to_play")
-    parser.add_argument("-alt", "--altitude", help="default altitude")
-    parser.add_argument("-r", "--radius", help="default radius")
+    parser.add_argument("-c", "--connect", help="connection string, if empty, then connecting to /dev/ttyTHS1")
+    parser.add_argument("-m", "--mission", help="mission_to_play, accepted values: takeoff, simple, long")
+    parser.add_argument("-alt", "--altitude", help="altitude, default 4m")
+    parser.add_argument("-r", "--radius", help="test square radius, default 20m")
     args = parser.parse_args()
     connection_string=args.connect
     currentMission=args.mission
@@ -285,6 +306,8 @@ def main():
         tr1wDataThread = threading.Thread(target = checkAirplanesDistance, args = (run_event,vehicle))
         tr1wDataThread.start()
         if not currentMission:
+            time.sleep(30)
+        elif currentMission == "takeoff":
             takeoff_land(vehicle, altitude)
         elif currentMission == "simple":
             simple_go_and_move_back(vehicle, altitude, radius)

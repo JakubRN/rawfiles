@@ -40,9 +40,9 @@ def init(vehicle):
     #     global home_position_set
     #     home_position_set = True
     vehicle.commands.download()
-    while not vehicle.home_location:
-        print( "Waiting for home position...")
-        time.sleep(1)
+    # while not vehicle.home_location:
+    #     print( "Waiting for home position...")
+    #     time.sleep(1)
 
     # Display basic vehicle state
     print( " System status: %s" % vehicle.system_status.state)
