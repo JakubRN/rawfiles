@@ -19,10 +19,10 @@ args = parser.parse_args()
 videoName=args.video
 movieName=args.name
 movieName += '.avi'
-print(movieName)
 # Check if camera opened successfully
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(videoName)
 if (cap.isOpened() == False): 
+    print("Failed, trying to open on default port")
     cap = cv2.VideoCapture(0)
 # cap.set(3,1920)     #horizontal pixels
 # cap.set(4,1080)     #vertical pixels
