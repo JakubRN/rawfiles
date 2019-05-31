@@ -33,16 +33,16 @@ videoName=args.video
 movieName=args.name
 movieName += '.avi'
 # Check if camera opened successfully
-cap = open_cam_usb(args.video, args.width, args.height)
+cap = cv2.VideoCapture(videoName)
 
 if (cap.isOpened() == False):     
     print("Unable to read camera feed")
     exit
-# cap.set(cv2.CAP_PROP_FRAME_WIDTH,args.width)     #horizontal pixels
-# cap.set(cv2.CAP_PROP_FRAME_HEIGHT,args.height)     #vertical pixels
+cap.set(cv2.CAP_PROP_FRAME_WIDTH,args.width)     #horizontal pixels
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT,args.height)     #vertical pixels
 
 cap.set(cv2.CAP_PROP_BUFFERSIZE,1)
-# cap.set(cv2.CAP_PROP_FPS,30)
+cap.set(cv2.CAP_PROP_FPS,30)
 frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
