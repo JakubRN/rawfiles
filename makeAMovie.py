@@ -15,8 +15,8 @@ def open_window(width, height):
 parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--name", help="movie name", required=True)
 parser.add_argument("-v", "--video", help="video camera input", default='dev/video0')
-parser.add_argument("-w", "--width", help="camera width", default=3840)
-parser.add_argument("-he", "--height", help="camera height", default=1920)
+parser.add_argument("-w", "--width", help="camera width", default=3840, type=int)
+parser.add_argument("-he", "--height", help="camera height", default=1920, type=int)
 args = parser.parse_args()
 videoName=args.video
 movieName=args.name
@@ -33,6 +33,7 @@ if (cap.isOpened() == False):
     exit
 
 cap.set(cv2.CAP_PROP_BUFFERSIZE,1)
+cap.set(cv2.CAP_PROP_FPS,30)
 frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
@@ -41,16 +42,17 @@ open_window(min(int(frame_width/2),1920), min(int(frame_height/2), 1080))
 
 out = cv2.VideoWriter(movieName,cv2.VideoWriter_fourcc('M','J','P','G'), 10, (frame_width,frame_height))
  
-print("start reading")
+print("start reading at FPS ", cv2.CAP_PROP_FPS)
 delay = 0
 try:
   while(True):
-    while (True):
-        ticks = time.time()
-        cap.grab()
-        #print((time.time()-ticks)*cap.get(cv2.CAP_PROP_FPS))
-        if((time.time() - ticks) * cap.get(cv2.CAP_PROP_FPS) > 0.5): 
-            break
+    # while (True):
+    #     ticks = time.time()
+    #     cap.grab()
+    #     #print((time.time()-ticks)*cap.get(cv2.CAP_PROP_FPS))
+    #     if((time.time() - ticks) * cap.get(cv2.CAP_PROP_FPS) > 0.5): 
+    #     this crashes the program if opencv doesnt get the right framerate
+    #         break
     ret, frame = cap.read()
     
     if ret == True: 
@@ -58,8 +60,8 @@ try:
       # Write the frame into the file
       out.write(frame)
       cv2.imshow(WINDOW_NAME,frame)
-      if(delay == 10000):
-          break
+      # if(delay == 10000):
+      #     break
 
       # Display the resulting frame    
 
