@@ -12,6 +12,17 @@ def open_window(width, height):
     cv2.moveWindow(WINDOW_NAME, 0, 0)
     cv2.setWindowTitle(WINDOW_NAME, 'Camera Demo for Jetson TX2/TX1')
 
+
+def open_cam_usb(dev, width, height):
+    # We want to set width and height here, otherwise we could just do:
+    #     return cv2.VideoCapture(dev)
+    gst_str = ("v4l2src device=/dev/video{} ! "
+               "video/x-raw, width=(int){}, height=(int){}, format=(string)RGB ! "
+               "videoconvert ! appsink").format(dev, width, height)
+    return cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--name", help="movie name", required=True)
 parser.add_argument("-v", "--video", help="video camera input", default=0, type=int)
@@ -22,18 +33,16 @@ videoName=args.video
 movieName=args.name
 movieName += '.avi'
 # Check if camera opened successfully
-cap = cv2.VideoCapture(videoName)
-if (cap.isOpened() == False): 
-    print("Failed, trying to open on default port")
-    cap = cv2.VideoCapture(0)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH,args.width)     #horizontal pixels
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT,args.height)     #vertical pixels
+cap = open_cam_usb(args.video, args.width, args.height)
+
 if (cap.isOpened() == False):     
     print("Unable to read camera feed")
     exit
+# cap.set(cv2.CAP_PROP_FRAME_WIDTH,args.width)     #horizontal pixels
+# cap.set(cv2.CAP_PROP_FRAME_HEIGHT,args.height)     #vertical pixels
 
 cap.set(cv2.CAP_PROP_BUFFERSIZE,1)
-cap.set(cv2.CAP_PROP_FPS,30)
+# cap.set(cv2.CAP_PROP_FPS,30)
 frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
