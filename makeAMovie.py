@@ -16,7 +16,7 @@ def open_window(width, height):
 def open_cam_usb(dev, width, height):
     # We want to set width and height here, otherwise we could just do:
     #     return cv2.VideoCapture(dev)
-    gst_str = ("v4l2src device=/dev/video{} ! "
+    gst_str = ("v4l2src device={} ! "
                "video/x-raw, width=(int){}, height=(int){}, format=(string)RGB ! "
                "videoconvert ! appsink").format(dev, width, height)
     return cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
@@ -39,13 +39,17 @@ args = parser.parse_args()
 videoName=args.video
 movieName=args.name
 movieName += '.avi'
-# Check if camera opened successfully
-cap = cv2.VideoCapture('nvarguscamerasrc ! video/x-raw(memory:NVMM), width=%d, height=%d, format=(string)NV12, framerate=(fraction)%d/1 ! nvvidconv ! video/x-raw, width=(int)%d, height=(int)%d, format=(string)BGRx ! videoconvert ! appsink' % (
-                capture_width, capture_height, fps, frame_width, frame_height), cv2.CAP_GSTREAMER)
+cap = cv2.VideoCapture(0 + cv2.CAP_DSHOW)
+# RPI camera
+# cap = cv2.VideoCapture('nvarguscamerasrc ! video/x-raw(memory:NVMM), width=%d, height=%d, format=(string)NV12, framerate=(fraction)%d/1 ! nvvidconv ! video/x-raw, width=(int)%d, height=(int)%d, format=(string)BGRx ! videoconvert ! appsink' % (
+#                 capture_width, capture_height, fps, frame_width, frame_height), cv2.CAP_GSTREAMER)
 if (cap.isOpened() == False):     
     print("Unable to read camera feed")
     exit
-    
+
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, args.width)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, args.height)
+cap.set(cv2.CAP_PROP_FPS, 30)
 frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
