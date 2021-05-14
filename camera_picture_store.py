@@ -30,7 +30,7 @@ def open_window(width, height):
 def read_cam(cap):
     show_help = True
     full_scrn = False
-    help_text = '"Esc" to Quit, "H" for Help, "F" to Toggle Fullscreen, "S" to store image'
+    help_text = '"Esc" to Quit, "H" for Help, "S" to store image'
     font = cv2.FONT_HERSHEY_PLAIN
     
     print('expected FPS: ', cap.get(cv2.CAP_PROP_FPS))
@@ -49,12 +49,13 @@ def read_cam(cap):
             counter = 0
             currtime = time.time()
 
-        ret, img = cap.read() # grab the next image frame from camera
+        ret, img_org = cap.read() # grab the next image frame from camera
         
         # if frame is read correctly ret is True
         if not ret:
             print("Can't receive frame (stream end?). Exiting ...")
             break
+        img = cv2.resize(img_org, (480,270))
         if show_help:
             cv2.putText(img, help_text, (11, 20), font,
                         1.0, (32, 32, 32), 4, cv2.LINE_AA)
@@ -66,16 +67,8 @@ def read_cam(cap):
             break
         if key == ord('H') or key == ord('h'): # toggle help message
             show_help = not show_help
-        if key == ord('F') or key == ord('f'): # toggle fullscreen
-            full_scrn = not full_scrn
-            if full_scrn:
-                cv2.setWindowProperty(WINDOW_NAME, cv2.WND_PROP_FULLSCREEN,
-                                      cv2.WINDOW_FULLSCREEN)
-            else:
-                cv2.setWindowProperty(WINDOW_NAME, cv2.WND_PROP_FULLSCREEN,
-                                      cv2.WINDOW_NORMAL)
         if key == ord('S') or key == ord('s'): # save
-            cv2.imwrite('imgs/'+ str(img_counter) + '.png',img)
+            cv2.imwrite('imgs/'+ str(img_counter) + '.png',img_org)
             img_counter += 1
 
         
@@ -101,7 +94,12 @@ def readCamera(dev):
     print("start reading at FPS ", cv2.CAP_PROP_FPS)
     print(img_width, ", ", img_height)
     open_window(int(img_width/4), int(img_height/4))
-    read_cam(cap)
+    try:
+        read_cam(cap)
+    except:
+        cap.release()
+        cv2.destroyAllWindows() 
+        exit
 
     cap.release()
     cv2.destroyAllWindows()
