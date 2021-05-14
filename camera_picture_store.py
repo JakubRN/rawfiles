@@ -68,7 +68,9 @@ def read_cam(cap):
         if key == ord('H') or key == ord('h'): # toggle help message
             show_help = not show_help
         if key == ord('S') or key == ord('s'): # save
-            cv2.imwrite('imgs/'+ str(img_counter) + '.png',img_org)
+            img_path = 'imgs/'+ str(img_counter) + '.png'
+            print("saving file: " + img_path)
+            cv2.imwrite(img_path,img_org)
             img_counter += 1
 
         
