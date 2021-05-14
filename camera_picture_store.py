@@ -54,7 +54,11 @@ def read_cam(cap):
         if not ret:
             print("Can't receive frame (stream end?). Exiting ...")
             break
-        img = cv2.resize(img_org, (int(img_width/4), int(img_height/4)))
+        scale_percent = 25 # percent of original size
+        width = int(img_org.shape[1] * scale_percent / 100)
+        height = int(img_org.shape[0] * scale_percent / 100)
+        dim = (width, height)
+        img = cv2.resize(img_org, dim, interpolation = cv2.INTER_AREA)
         if show_help:
             cv2.putText(img, help_text, (11, 20), font,
                         1.0, (32, 32, 32), 4, cv2.LINE_AA)
