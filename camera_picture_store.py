@@ -26,6 +26,7 @@ img_height = 0
 def open_window(width, height):
     cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_AUTOSIZE)
     cv2.resizeWindow(WINDOW_NAME, width, height)
+    cv2.moveWindow(WINDOW_NAME, width,height)
     cv2.moveWindow(WINDOW_NAME, 0, 0)
     cv2.setWindowTitle(WINDOW_NAME, 'Albatros camera view')
 
