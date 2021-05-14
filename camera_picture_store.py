@@ -15,6 +15,9 @@ import sys
 import argparse
 import cv2
 import time
+import os
+if not os.path.exists('imgs'):
+    os.makedirs('imgs')
 
 WINDOW_NAME = 'CameraDemo'
 img_width = 0
