@@ -30,13 +30,14 @@ def open_window(width, height):
 def read_cam(cap):
     show_help = True
     full_scrn = False
-    help_text = '"Esc" to Quit, "H" for Help, "F" to Toggle Fullscreen'
+    help_text = '"Esc" to Quit, "H" for Help, "F" to Toggle Fullscreen, "S" to store image'
     font = cv2.FONT_HERSHEY_PLAIN
     
     print('expected FPS: ', cap.get(cv2.CAP_PROP_FPS))
                        
     currtime = time.time()
     counter = 0
+    img_counter = 1
     while True:
         counter += 1
         if cv2.getWindowProperty(WINDOW_NAME, 0) < 0:
@@ -63,9 +64,9 @@ def read_cam(cap):
         key = cv2.waitKey(1)
         if key == 27: # ESC key: quit program
             break
-        elif key == ord('H') or key == ord('h'): # toggle help message
+        if key == ord('H') or key == ord('h'): # toggle help message
             show_help = not show_help
-        elif key == ord('F') or key == ord('f'): # toggle fullscreen
+        if key == ord('F') or key == ord('f'): # toggle fullscreen
             full_scrn = not full_scrn
             if full_scrn:
                 cv2.setWindowProperty(WINDOW_NAME, cv2.WND_PROP_FULLSCREEN,
@@ -73,6 +74,9 @@ def read_cam(cap):
             else:
                 cv2.setWindowProperty(WINDOW_NAME, cv2.WND_PROP_FULLSCREEN,
                                       cv2.WINDOW_NORMAL)
+        if key == ord('S') or key == ord('s'): # save
+            cv2.imwrite('imgs/'+ str(img_counter) + '.png',img)
+            img_counter += 1
 
         
 def open_cam_usb(dev, width, height):
