@@ -47,7 +47,12 @@ def read_cam(cap):
             counter = 0
             currtime = time.time()
 
-        _, img = cap.read() # grab the next image frame from camera
+        ret, img = cap.read() # grab the next image frame from camera
+        
+        # if frame is read correctly ret is True
+        if not ret:
+            print("Can't receive frame (stream end?). Exiting ...")
+            break
         if show_help:
             cv2.putText(img, help_text, (11, 20), font,
                         1.0, (32, 32, 32), 4, cv2.LINE_AA)
@@ -79,6 +84,7 @@ def readCamera(dev):
     cap.set(cv2.CAP_PROP_BUFFERSIZE,5)
     w = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
     h = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    print("start reading at FPS ", cv2.CAP_PROP_FPS)
     print(w, ", ", h)
     open_window(int(w), int(h))
     read_cam(cap)
