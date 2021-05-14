@@ -39,10 +39,10 @@ def read_cam(cap):
     counter = 0
     while True:
         counter += 1
-        if cv2.getWindowProperty(WINDOW_NAME, 0) < 0:
-            # Check to see if the user has closed the window
-            # If yes, terminate the program
-            break
+        # if cv2.getWindowProperty(WINDOW_NAME, 0) < 0:
+        #     # Check to see if the user has closed the window
+        #     # If yes, terminate the program
+        #     break
         if(time.time() - currtime > 1):
             print("FPS: ", counter)
             counter = 0
