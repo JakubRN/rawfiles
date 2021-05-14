@@ -85,7 +85,7 @@ def open_cam_usb(dev, width, height):
     return cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
 
 def readCamera(dev):
-    cap = open_cam_usb(dev,1920, 1080)
+    cap = cv2.VideoCapture(dev)
     if not cap.isOpened():
         sys.exit('Failed to open camera!')
     img_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
@@ -100,4 +100,4 @@ def readCamera(dev):
 
 
 if __name__ == '__main__':
-    readCamera("0")
+    readCamera("/dev/video0")
