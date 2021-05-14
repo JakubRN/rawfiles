@@ -54,17 +54,17 @@ def read_cam(cap):
         if not ret:
             print("Can't receive frame (stream end?). Exiting ...")
             break
-        scale_percent = 25 # percent of original size
-        width = int(img_org.shape[1] * scale_percent / 100)
-        height = int(img_org.shape[0] * scale_percent / 100)
-        dim = (width, height)
-        img = cv2.resize(img_org, dim, interpolation = cv2.INTER_AREA)
-        if show_help:
-            cv2.putText(img, help_text, (11, 20), font,
-                        1.0, (32, 32, 32), 4, cv2.LINE_AA)
-            cv2.putText(img, help_text, (10, 20), font,
-                        1.0, (240, 240, 240), 1, cv2.LINE_AA)
-        cv2.imshow(WINDOW_NAME, img)
+        # scale_percent = 25 # percent of original size
+        # width = int(img_org.shape[1] * scale_percent / 100)
+        # height = int(img_org.shape[0] * scale_percent / 100)
+        # dim = (width, height)
+        # img = cv2.resize(img_org, dim, interpolation = cv2.INTER_AREA)
+        # if show_help:
+        #     cv2.putText(img, help_text, (11, 20), font,
+        #                 1.0, (32, 32, 32), 4, cv2.LINE_AA)
+        #     cv2.putText(img, help_text, (10, 20), font,
+        #                 1.0, (240, 240, 240), 1, cv2.LINE_AA)
+        # cv2.imshow(WINDOW_NAME, img)
         key = cv2.waitKey(1)
         if key == 27: # ESC key: quit program
             break
@@ -101,7 +101,7 @@ def readCamera(dev):
     img_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
     print("start reading at FPS ", cv2.CAP_PROP_FPS)
     print(img_width, ", ", img_height)
-    open_window(int(img_width/4), int(img_height/4))
+    #open_window(int(img_width/4), int(img_height/4))
     read_cam(cap)
 
     cap.release()
