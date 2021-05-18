@@ -22,7 +22,11 @@ if not os.path.exists('imgs'):
 WINDOW_NAME = 'CameraDemo'
 img_width = 0
 img_height = 0
-
+capture_width = 1920
+capture_height = 1080
+fps = 30
+width = 1920
+height = 1080
 def open_window(width, height):
     cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_AUTOSIZE)
     cv2.resizeWindow(WINDOW_NAME, width, height)
@@ -85,8 +89,13 @@ def open_cam_usb(dev, width, height):
                "videoconvert ! appsink").format(dev, width, height)
     return cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
 
+def _gst_str():
+    return 'nvarguscamerasrc sensor-mode=3 ! video/x-raw(memory:NVMM), width=%d, height=%d, format=(string)NV12, framerate=(fraction)%d/1 ! nvvidconv ! video/x-raw, width=(int)%d, height=(int)%d, format=(string)BGRx ! videoconvert ! appsink' % (
+            capture_width, capture_height, fps, width, height)
+
+
 def readCamera(dev):
-    cap = cv2.VideoCapture(dev)
+    cap = cv2.VideoCapture(_gst_str(), cv2.CAP_GSTREAMER)
     if not cap.isOpened():
         sys.exit('Failed to open camera!')
     img_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
