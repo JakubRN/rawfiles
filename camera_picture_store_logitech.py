@@ -87,6 +87,11 @@ def open_cam_usb(dev, width, height):
 
 def readCamera(dev):
     cap = cv2.VideoCapture(dev)
+    fourcc_cap = cv2.VideoWriter_fourcc(*'MJPG')
+    cap.set(cv2.CAP_PROP_FOURCC, fourcc_cap)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH,1920)     #horizontal pixels
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT,1080)     #vertical pixels
+    cap.set(cv2.CAP_PROP_FPS, 30)      #FPS
     if not cap.isOpened():
         sys.exit('Failed to open camera!')
     img_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
